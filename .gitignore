@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.pkl
+*.csv
+.env
+mental_health_ques_data/
+node_modules/
+*.log
