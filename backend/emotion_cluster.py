@@ -5,12 +5,13 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
 from tensorflow.keras.optimizers import Adam
 from sklearn.model_selection import train_test_split
+from tensorflow.keras.callbacks import EarlyStopping
 
 # === Config ===
 CSV_PATH = "mental_health_ques_data/oneHotData.csv"
 OLLAMA_URL = "http://localhost:11434/api/embeddings"
 EMBED_MODEL = "nomic-embed-text"
-TRAIN_LIMIT = 200
+TRAIN_LIMIT = 1562
 
 # === Load Dataset ===
 df = pd.read_csv(CSV_PATH)
@@ -53,7 +54,19 @@ model = Sequential([
     Dense(Y.shape[1], activation='sigmoid')
 ])
 model.compile(optimizer=Adam(0.001), loss='binary_crossentropy', metrics=['accuracy'])
-model.fit(X_train, y_train, epochs=10, batch_size=16, validation_split=0.1)
+early_stop = EarlyStopping(
+    monitor='val_loss', 
+    patience=5, 
+    restore_best_weights=True
+)
+
+model.fit(
+    X_train, y_train,
+    epochs=50,
+    batch_size=16,
+    validation_split=0.1,
+    callbacks=[early_stop]
+)
 
 # === Save Model and Labels
 model.save("mental_state_model.h5")

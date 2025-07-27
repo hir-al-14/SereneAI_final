@@ -1,11 +1,15 @@
-# Mounts all feature routers
+# backend/main.py
+
 from fastapi import FastAPI
-from chat_handler import router as chat_router
-from emotion_classifier import router as emotion_router
-from crisis_detector import router as crisis_router
-from recommendation import router as recommendation_router
+from backend.chat_handler import router as chat_router
+from backend.emotion_classifier import router as emotion_router
+from backend.crisis_detector import router as crisis_router
+from backend.recommendation import router as recommendation_router
 
 app = FastAPI()
+
+print("Chat router loaded:", chat_router)
+print("Emotion router loaded:", emotion_router)
 
 app.include_router(chat_router, prefix="/chat")
 app.include_router(emotion_router, prefix="/predict")
