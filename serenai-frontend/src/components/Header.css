@@ -1,0 +1,35 @@
+.header {
+  background-color: #0f1115;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  font-size: 1.8rem;
+  color: white;
+  font-weight: 700;
+  font-family: "Inter", sans-serif;
+}
+
+.gradient-text {
+  background: linear-gradient(to right, #8b5cf6, #4f8df9, #ec4899);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+nav button {
+  background-color: transparent;
+  border: 2px solid #4f8df9;
+  color: #4f8df9;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+nav button:hover {
+  background-color: #4f8df9;
+  color: white;
+}

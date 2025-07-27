@@ -8,9 +8,6 @@ from backend.recommendation import router as recommendation_router
 
 app = FastAPI()
 
-print("Chat router loaded:", chat_router)
-print("Emotion router loaded:", emotion_router)
-
 app.include_router(chat_router, prefix="/chat")
 app.include_router(emotion_router, prefix="/predict")
 app.include_router(crisis_router, prefix="/crisis")
