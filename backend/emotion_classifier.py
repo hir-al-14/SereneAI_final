@@ -33,7 +33,7 @@ def get_embedding(text):
     )
     return response.json()["embedding"]
 
-@router.post("/predict")
+@router.post("/")
 def predict_emotions(req: TextRequest):
     emb = np.array(get_embedding(req.text)).reshape(1, -1)
     probs = model.predict(emb)[0]

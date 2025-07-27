@@ -19,7 +19,7 @@ class RecommendationRequest(BaseModel):
 
 def build_prompt(emotions: List[str]) -> str:
     return (
-        f"The user is feeling these emotions or problems in life cuurently: {', '.join(emotions)}.\n"
+        f"The user is feeling these emotions or problems in life currently: {', '.join(emotions)}.\n"
         "Recommend 5 uplifting MOVIES, 5 BOOKS, and 5 SONGS that can help them feel better emotionally. "
         "Make sure these suggestions counteract or reverse the negative feelings.\n\n"
         "Return ONLY in the given format:\n"

@@ -35,6 +35,7 @@ async def chat_handler(body: ChatRequest):
     prompt = f"""
 You are a compassionate AI mental health assistant.
 Use the following chat history to maintain context.
+Keep the response short, helpful, and soothing — max 5-7 lines.
 
 Chat History:
 {history_context}

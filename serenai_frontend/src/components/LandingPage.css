@@ -1,0 +1,66 @@
+.landing-container {
+  height: 100vh;
+  background: linear-gradient(to bottom right, #e0f7fa, #ffffff);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Nunito', sans-serif;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
+.landing-box {
+  background-color: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 40px;
+  padding-left: 200px;
+  padding-right: 200px;
+  max-width: 900px;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.slogan {
+    color:#1862d0;
+}
+
+.landing-logo {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.landing-title {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+  margin-top: 0px;
+  color: #2c3e50;
+}
+
+.landing-subtitle {
+  font-size: 1.2rem;
+  color: #37474f;
+  margin-bottom: 20px;
+}
+
+.landing-buttons button {
+  padding: 12px 24px;
+  font-size: 1rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin: 0 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.user-button {
+  background: #81d4fa;
+  color: #0d47a1;
+}
+
+.therapist-button {
+  background: #a5d6a7;
+  color: #1b5e20;
+}

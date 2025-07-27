@@ -93,7 +93,7 @@ def classify(scores: List[dict]) -> str:
         return "NORMAL"
 
 # === Endpoint ===
-@router.post("/crisis", tags=["Crisis Detection"])
+@router.post("/", tags=["Crisis Detection"])
 async def detect_crisis(input: CrisisInput):
     try:
         phrases = await extract_phrases(input.message)
