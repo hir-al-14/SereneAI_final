@@ -16,15 +16,32 @@ function App() {
   if (isLoading) return <div>Loading...</div>;
 
   if (!isAuthenticated) {
-    return <LandingPage onRoleSelect={(r) => {
-      localStorage.setItem('role', r);
-      setRole(r);
-      loginWithRedirect();
-    }} />;
+    return (
+      <LandingPage
+        onRoleSelect={(r) => {
+          localStorage.setItem('role', r);
+          setRole(r);
+          loginWithRedirect();
+        }}
+      />
+    );
   }
 
-  if (role === "therapist") return <TherapistDashboard user={user} logout={() => logout({ returnTo: window.location.origin })} />;
-  return <UserDashboard user={user} logout={() => logout({ returnTo: window.location.origin })} />;
+  if (role === 'therapist') {
+    return (
+      <TherapistDashboard
+        user={user}
+        logout={() => logout({ returnTo: window.location.origin })}
+      />
+    );
+  }
+
+  return (
+    <UserDashboard
+      user={user}
+      logout={() => logout({ returnTo: window.location.origin })}
+    />
+  );
 }
 
 export default App;

@@ -87,7 +87,7 @@ def classify(scores: List[dict]) -> str:
 
     if avg >= 7:
         return "CRISIS"
-    elif avg >= 4:
+    elif avg >= 5.5:
         return "HIGH_RISK"
     else:
         return "NORMAL"

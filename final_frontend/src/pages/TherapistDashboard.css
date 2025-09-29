@@ -1,0 +1,43 @@
+.therapist-dashboard {
+  padding: 2rem;
+  background-color: #f0f4f9;
+}
+
+.therapist-dashboard h1 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.therapist-dashboard table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.therapist-dashboard th,
+.therapist-dashboard td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.alert {
+  background-color: #ffe5e5;
+  color: #c0392b;
+  font-weight: bold;
+}
+.user-section {
+  margin-top: 2rem;
+  padding: 1rem;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.user-section h2 {
+  font-size: 1.4rem;
+  margin-bottom: 1rem;
+  color: #333;
+}
+

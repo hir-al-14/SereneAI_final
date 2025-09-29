@@ -1,0 +1,55 @@
+body {
+  font-family: sans-serif;
+  background: #f3f4f6;
+  margin: 0;
+  padding: 0;
+}
+
+.landing, .dashboard, .therapist {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+}
+
+button {
+  background: #4f46e5;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  margin-top: 1rem;
+  cursor: pointer;
+}
+
+.chat-box {
+  width: 100%;
+  max-width: 600px;
+  height: 300px;
+  background: white;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  margin-bottom: 1rem;
+  padding: 1rem;
+}
+
+.user {
+  text-align: right;
+  color: #1d4ed8;
+}
+
+.bot {
+  text-align: left;
+  color: #111827;
+}
+
+.input-box {
+  display: flex;
+  width: 100%;
+  max-width: 600px;
+}
+
+input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+}

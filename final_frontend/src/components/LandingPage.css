@@ -1,0 +1,45 @@
+.landing-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2rem;
+  height: 100vh;
+}
+
+.left-content {
+  flex: 1;
+  padding: 2rem;
+}
+
+.right-animation {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.gradient-text {
+  font-size: 3.5rem;
+  font-weight: bold;
+  background: linear-gradient(90deg, #57b6e7, #8e44ad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.start-button, .role-button {
+  margin-top: 1rem;
+  padding: 0.75rem 2rem;
+  font-size: 1.1rem;
+  border: none;
+  border-radius: 8px;
+  background-color: #6c5ce7;
+  color: white;
+  cursor: pointer;
+}
+
+.role-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}

@@ -1,77 +1,118 @@
 # backend/chat_handler.py
-
 import os
 import httpx
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from langchain.memory import ConversationBufferMemory
 
-# Load environment variables
+# Load environment variables from .env if present
 load_dotenv()
 
 router = APIRouter()
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-# Initialize memory
+# === Config ===
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+# Default to Gemini Flash; override by setting GEMINI_MODEL in your .env if needed
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+GEMINI_ENDPOINT = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
+
+# Conversation memory (keeps lightweight running context)
 memory = ConversationBufferMemory(memory_key="history", return_messages=False)
 
-# Request schema
 class ChatRequest(BaseModel):
     message: str
 
-# Chat endpoint
+def _extract_text_from_candidates(data: dict) -> str:
+    """Safely extract text from Gemini REST 'candidates' response."""
+    cands = data.get("candidates") or []
+    if not cands:
+        return ""
+    # Take first candidate; concatenate all text parts
+    parts = (cands[0].get("content") or {}).get("parts") or []
+    texts = []
+    for p in parts:
+        # Each part is typically {"text": "..."}; ignore non-dict items safely
+        if isinstance(p, dict):
+            t = p.get("text", "")
+            if t:
+                texts.append(t)
+    return "".join(texts).strip()
+
 @router.post("/", tags=["Chat"])
 async def chat_handler(body: ChatRequest):
+    if not GEMINI_API_KEY:
+        raise HTTPException(status_code=500, detail="GEMINI_API_KEY is not set")
+
     user_input = body.message
 
-    # Store user message in memory
+    # Save user message in memory and load context
     memory.chat_memory.add_user_message(user_input)
+    history_context = memory.load_memory_variables({}).get("history", "")
 
-    # Load chat history
-    history_context = memory.load_memory_variables({})["history"]
-
-    # Prepare prompt
+    # Build a concise, empathetic prompt
     prompt = f"""
 You are a compassionate AI mental health assistant.
-Use the following chat history to maintain context.
-Keep the response short, helpful, and soothing — max 5-7 lines.
+Use the chat history (if any) to keep context.
+Keep replies short, warm, and supportive (5–7 lines).
 
 Chat History:
 {history_context}
 
 User: {user_input}
 Respond empathetically:
-"""
-
-    # Gemini API endpoint
-    endpoint = (
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent"
-        f"?key={GEMINI_API_KEY}"
-    )
+""".strip()
 
     payload = {
-        "contents": [
-            {
-                "role": "user",
-                "parts": [{"text": prompt}]
-            }
-        ]
+        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "maxOutputTokens": 256,
+            "temperature": 0.7
+        }
     }
-
     headers = {"Content-Type": "application/json"}
 
-    # Make async HTTP call
-    async with httpx.AsyncClient() as client:
-        response = await client.post(endpoint, headers=headers, json=payload, timeout=30.0)
-
-    # Parse Gemini response
+    # Call Gemini (Flash)
     try:
-        reply = response.json()["candidates"][0]["content"]["parts"][0]["text"]
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                f"{GEMINI_ENDPOINT}?key={GEMINI_API_KEY}",
+                headers=headers,
+                json=payload
+            )
     except Exception as e:
-        reply = f"Gemini API error: {str(e)}"
+        reply = f"Model call failed: {e}"
+        memory.chat_memory.add_ai_message(reply)
+        return {"response": reply}
 
-    # Store AI message in memory
+    # Parse response JSON
+    try:
+        data = resp.json()
+    except Exception:
+        reply = f"Non-JSON response (HTTP {resp.status_code})."
+        memory.chat_memory.add_ai_message(reply)
+        return {"response": reply}
+
+    # Transport / API error object
+    if resp.status_code != 200 or "error" in data:
+        err = data.get("error", {})
+        code = err.get("code", resp.status_code)
+        msg = err.get("message", "Unknown error")
+        reply = f"Gemini API error ({code}): {msg}"
+        memory.chat_memory.add_ai_message(reply)
+        return {"response": reply}
+
+    # Safety block (no candidates in some cases)
+    fb = data.get("promptFeedback") or {}
+    if fb.get("blockReason"):
+        reply = f"Content blocked by safety filters ({fb['blockReason']}). Could you rephrase?"
+        memory.chat_memory.add_ai_message(reply)
+        return {"response": reply}
+
+    # Extract text defensively
+    text = _extract_text_from_candidates(data)
+    reply = text if text else "Sorry, I couldn't generate a response this time."
+
+    # Save assistant message in memory
     memory.chat_memory.add_ai_message(reply)
-
     return {"response": reply}
