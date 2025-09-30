@@ -1,113 +1,77 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import List
-import httpx
-import os
-import re
-import json
+from typing import List, Dict
+import os, re, json, httpx
 from dotenv import load_dotenv
 
 load_dotenv()
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+OPENAI_ENDPOINT = "https://api.openai.com/v1/chat/completions"
+OPENAI_MODERATION_ENDPOINT = "https://api.openai.com/v1/moderations"
+OPENAI_MOD_MODEL = os.getenv("OPENAI_MOD_MODEL", "omni-moderation-latest")
 
 router = APIRouter()
+
+CRISIS_REGEXES = [
+    r"kill myself", r"end my life", r"take my life",
+    r"i don'?t want to live", r"don'?t want to be alive",
+    r"i wish i (?:were|was) dead", r"i should die",
+    r"better off dead", r"hurt myself", r"self[-\s]?harm",
+    r"suicide", r"suicidal", r"cutting", r"overdose",
+    r"jump off", r"hang myself"
+]
 
 class CrisisInput(BaseModel):
     message: str
 
-# === Helper: Call Gemini API ===
-async def call_gemini(prompt: str) -> str:
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key={GEMINI_API_KEY}"
-    payload = {
-        "contents": [{"role": "user", "parts": [{"text": prompt}]}]
-    }
+def headers():
+    if not OPENAI_API_KEY:
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY missing")
+    return {"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type": "application/json"}
 
-    async with httpx.AsyncClient() as client:
-        res = await client.post(url, headers={"Content-Type": "application/json"}, json=payload, timeout=30)
+def hit_crisis_rules(text: str) -> bool:
+    lower = text.lower()
+    for pattern in CRISIS_REGEXES:
+        if re.search(pattern, lower):
+            return True
+    return False
 
-    if res.status_code != 200:
-        raise HTTPException(status_code=500, detail=f"Gemini failed: {res.status_code} - {res.text}")
-
-    data = res.json()
+async def call_openai_moderation(text: str):
     try:
-        return data["candidates"][0]["content"]["parts"][0]["text"]
+        async with httpx.AsyncClient(timeout=15) as client:
+            res = await client.post(
+                OPENAI_MODERATION_ENDPOINT,
+                headers=headers(),
+                json={"model": OPENAI_MOD_MODEL, "input": text},
+            )
+            res.raise_for_status()
+            data = res.json()
+            cats = data["results"][0].get("categories", {})
+            # if self-harm flagged -> True
+            if any(cats.get(k, False) for k in cats.keys() if "self" in k or "suicide" in k):
+                return True
     except Exception:
-        raise HTTPException(status_code=500, detail="Crisis detection failed: 'candidates'")
+        pass
+    return False
 
-# === Step 1: Extract Emotional Phrases ===
-async def extract_phrases(message: str) -> List[str]:
-    prompt = (
-        "Extract emotional or psychological phrases from the message. "
-        "Return ONLY a JSON list like [\"I feel anxious\", \"can't sleep\"]:\n\n"
-        f"{message}"
-    )
-    raw = await call_gemini(prompt)
-    raw = raw.replace("“", "\"").replace("”", "\"").replace("’", "'")
-
-    # Try to parse as JSON list
-    match = re.search(r"\[.*?\]", raw, re.DOTALL)
-    if match:
-        try:
-            parsed = json.loads(match.group(0))
-            if isinstance(parsed, list):
-                return parsed
-        except:
-            pass
-
-    # Fallback: use simple line-by-line split
-    lines = [line.strip("-• \n\"'") for line in raw.splitlines()]
-    return [line for line in lines if line and len(line.split()) <= 10]
-
-# === Step 2: Score phrases ===
-async def score_phrases(phrases: List[str]) -> List[dict]:
-    prompt = (
-        "You are a clinical mental health AI assistant. "
-        "Rate the **psychological severity** of each phrase on a scale of 0 to 10, where:\n"
-        "- 0–3 = NORMAL (no concerning language)\n"
-        "- 4–6 = HIGH_RISK (stress, anxiety, burnout, but no direct harm)\n"
-        "- 7–10 = CRISIS (language suggesting harm, suicide, or hopelessness)\n\n"
-        f"Phrases: {phrases}\n\n"
-        "Return ONLY JSON like:\n"
-        "[{\"text\": \"I feel exhausted\", \"score\": 3}, {\"text\": \"I want to disappear\", \"score\": 9}]"
-    )
-    raw = await call_gemini(prompt)
-    match = re.search(r"\[.*?\]", raw, re.DOTALL)
-    if not match:
-        raise HTTPException(status_code=500, detail="Crisis detection failed: No scores returned.")
-    
-    try:
-        return json.loads(match.group(0))
-    except:
-        raise HTTPException(status_code=500, detail="Crisis detection failed: Invalid JSON for scores.")
-
-# === Step 3: Classify Risk ===
-def classify(scores: List[dict]) -> str:
-    total = sum(s["score"] for s in scores)
-    avg = total / len(scores) if scores else 0
-
-    if avg >= 7:
-        return "CRISIS"
-    elif avg >= 5.5:
-        return "HIGH_RISK"
-    else:
-        return "NORMAL"
-
-# === Endpoint ===
 @router.post("/", tags=["Crisis Detection"])
 async def detect_crisis(input: CrisisInput):
-    try:
-        phrases = await extract_phrases(input.message)
-        if not phrases:
-            raise HTTPException(status_code=400, detail="Crisis detection failed: No valid phrases extracted")
+    text = input.message
+    # Step 1: rule-based hit
+    if hit_crisis_rules(text):
+        return {"label": "CRISIS", "phrases": [text], "scored": [{"text": text, "score": 10}]}
 
-        scores = await score_phrases(phrases)
-        label = classify(scores)
+    # Step 2: moderation
+    mod_flag = await call_openai_moderation(text)
+    if mod_flag:
+        return {"label": "CRISIS", "phrases": [text], "scored": [{"text": text, "score": 10}]}
 
-        return {
-            "label": label,
-            "phrases": phrases,
-            "scored": scores
-        }
+    # Step 3: else HIGH_RISK by default if text contains distress words
+    distress_words = ["anxious", "panic", "hopeless", "depressed", "hate myself", "body", "can't sleep"]
+    if any(w in text.lower() for w in distress_words):
+        return {"label": "HIGH_RISK", "phrases": [text], "scored": [{"text": text, "score": 6}]}
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Crisis detection failed: {e}")
+    # Step 4: normal fallback
+    return {"label": "NORMAL", "phrases": [text], "scored": [{"text": text, "score": 3}]}

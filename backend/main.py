@@ -6,6 +6,7 @@ from backend.chat_handler import router as chat_router
 from backend.emotion_classifier import router as emotion_router
 from backend.crisis_detector import router as crisis_router
 from backend.recommendation import router as recommendation_router
+from backend.audio_handler import router as audio_router
 
 import csv
 import os
@@ -26,6 +27,7 @@ app.include_router(chat_router, prefix="/chat")
 app.include_router(emotion_router, prefix="/predict")
 app.include_router(crisis_router, prefix="/crisis")
 app.include_router(recommendation_router, prefix="/recommendations")
+app.include_router(audio_router, prefix="/audio")
 
 # === Logging endpoints ===
 LOG_FILE = "emotion_logs.csv"
